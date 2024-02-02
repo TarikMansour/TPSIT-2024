@@ -4,73 +4,60 @@
 #include<string.h>
 #include<sys/wait.h>
 
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 5
 
 
 int main()
 {
-
-	int p;
-	int fd[2];
-	int n;
+    //read e write sono sincrone ma la pipe no quindi si usa la wait cosi il padre aspetta la terminazione del figlio altrimenti
+    //diventa un figlio zombie 
 	int status;
-	if(pipe(fd) == -1) 
-	{
-		printf("\nErrore creazione pipe");
-		exit(-1); 
-	}
+    int fd[2];
+    int p;
+    //PIPE 
+    if(pipe(fd) == -1){
+        printf("errore \n");
+        exit(-1);
+    }
+    //FORK 
+    p = fork();
+    if(p<0){
+        printf("errore \n");
+        exit(-1);
+    }
+    //PADRE
+    if (p > 0){
+        int numero;
+        int buffer[BUFFER_SIZE];
+        wait(&status); //SISTEMA IL PROBLEMA DI ASINCRONIZZAZIONE
+        printf("\nSono il padre: il mio PID=%d, mio figlio ha PID=%d\n", getpid(), p); //IDENTIFICAZIONE
+        close(fd[1]); //CHIUDE SCRITTURA
+        printf("inserire numero \n");
+        scanf("%d", &numero);
+        if(read(fd[0], buffer, sizeof(int)*BUFFER_SIZE) == -1){ //LEGGE 
+            printf("errore \n");
+        }
+        for(int i = 0; i< BUFFER_SIZE; i++){ //FA LA MOLTIPLICAZIONE
+            printf("%d \n", buffer[i]*numero);
+        }
+        close(fd[0]); //CHIUDO LETTURA
+    }
+    //FIGLIO
+    else{
+        int numeri[BUFFER_SIZE];
+        printf("\nSono il figlio: il mio PID=%d, mio padre ha PID=%d\n", getpid(), getppid()); //IDENTIFICAZIONE
+        close(fd[0]); //CHIUDO LETTURA
+        for (int i = 0; i< BUFFER_SIZE; i++){ //RIEMPE ARRAY
+            printf("inserire %d numero", i+1);
+            scanf("%d", &numeri[i]);
+        }
+        if(write(fd[1], numeri, sizeof(numeri)) == -1){ //SCRITTURA ARRAY
+            printf("errore \n");
+            close(fd[1]); //CHIUDO SCRITTURA
+            exit(-1);
 
-	p=fork(); 
-	if (p<0)
-	{
-		printf("\nErrore generazione figlio");
-	}
-
-	if(p>0) 
-	{
-	    int buffer[5];
-	    int numero;
-		printf("\nSono il padre: il mio PID=%d, mio figlio ha PID=%d\n", getpid(), p);
-		close(fd[1]); 
-		n=read(fd[0], buffer, sizeof(buffer));
-		if(n==-1)
-		{
-			printf("\nErrore nella lettura della pipe");
-			close(fd[0]); 
-			exit(-1);
-		}
-		else 
-		{
-			printf("inserire numero \n");
-			scanf("%d", &numero);
-			for(int i = 0; i<5; i++){
-			    buffer[i] *= numero;
-			    printf("%d", buffer[i]);
-			}
-			close(fd[0]);
-		}
-	
-		wait(&status);
-	}
-	else 
-	{
-		int numeri[5];
-	
-		printf("\nSono il figlio: il mio PID=%d, mio padre ha PID=%d\n", getpid(), getppid());
-		close(fd[0]);
-		printf("Inserire numeri\n");
-		for(int i = 0; i<5; i++){
-		    scanf("%d", &numeri[i]);
-		}
-		if( write(fd[1], numeri,  sizeof(numeri)) == -1)
-		{
-			printf("\nErrore di scrittura nella pipe");
-			close(fd[1]);
-			exit(-1);
-		}
-		close(fd[1]);
-		
-	}
-
+        }
+        close(fd[1]); //CHIUDO SCRITTURA
+    }
 	return 0;
 }
