@@ -1,0 +1,10 @@
+STACK 
+7ffffff dd000
+7ffffff fda84
+7ffffff ff000
+
+HEAP 
+5555555 59000
+5555555 592a0
+5555555 7a000
+
