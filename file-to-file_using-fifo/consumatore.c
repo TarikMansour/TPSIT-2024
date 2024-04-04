@@ -23,13 +23,15 @@ int main(int argc, char *argv[]){
         
         return 0;
     }
-    file = fopen(argv[1], "wb");
+
+    file = fopen(argv[1], "wb"); 
     if(file == NULL){
         printf("errore apertura file %s \n", argv[1]);
       
         return 0;
     }
-    while(n=read(fd,buffer,sizeof(buffer))>0){
+
+    while((n = read(fd, buffer, sizeof(buffer))) > 0){
         fwrite(buffer, 1, n, file);
     }
     close(fd);
