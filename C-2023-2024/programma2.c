@@ -2,23 +2,38 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
-#define SIZE 1024
-unsigned char buffer[SIZE];
+#define SIZE 64
+#define DIM 1024
+struct BUFFER{
+    unsigned char buffer[DIM];
+    int num;
+};
 int n = 0;
 int end;
+int N_block = 0; //variabile condivisa aumenta quando leggo diminuisce quando scrivo
+BUFFER ring_buffer[SIZE];
+int read_index = 0;
+int write_index = 0;
 void *lettura(void *arg){
 FILE *origine = (FILE*)arg;
- while(!feof(origine)){
-    n=fread(buffer, 1, SIZE, origine);
+ while(N_block >= SIZE){
+    n=fread(ring_buffer[write_index].buffer, 1, DIM, origine);
+    if(n>0){
+        ring_buffer[write_index].num = n;
+        write_index = (write_index+1)%SIZE;
+        N_block++;
+    }
  }
  end = feof(origine);
 }
 void *scrittura(void *arg){
  FILE *destinazione = (FILE*)arg;
-    while(!end){
+    while(!end || N_block > 0){
    
-    if(n>0){
-    fwrite(buffer, 1, n, destinazione);
+    if(N_block>0){
+    fwrite(ring_buffer[read_index].buffer, 1, ring_buffer[read_index].num, destinazione);
+    read_index = (read_index+1) % SIZE;
+    N_block--;
  }
 }
  }
